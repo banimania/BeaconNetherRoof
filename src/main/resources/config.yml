@@ -1,0 +1,4 @@
+#Damage dealt to players on nether roof that are not near a beacon
+damage: 2
+#Minimum distance a player has to be from a beacon to stop taking damage
+distance: 50
