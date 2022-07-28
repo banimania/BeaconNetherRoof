@@ -1,9 +1,7 @@
 package me.danimania.beaconnetherroof;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.block.Beacon;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
@@ -32,7 +30,7 @@ public class BeaconNetherRoofPlugin extends JavaPlugin {
         minDistance = getConfig().getInt("distance");
         damage = getConfig().getInt("damage");
 
-        Bukkit.getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
+        instance.getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
             @Override
             public void run() {
                 findAllLoadedBeacons();
@@ -47,20 +45,19 @@ public class BeaconNetherRoofPlugin extends JavaPlugin {
      * near a beacon.
      * */
     private static void dealDamageOnNetherRoof() {
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getWorld().getEnvironment().equals(World.Environment.NETHER)) {
-                if (p.getLocation().getBlockY() > 127) {
-                    boolean isInBeaconRange = false;
+        for (Player p : instance.getServer().getWorld("world_nether").getPlayers()) {
+            if (p.getLocation().getBlockY() > 127) {
+                boolean isInBeaconRange = false;
 
-                    for (Location beaconLocation : loadedBeaconLocations) {
-                        if (p.getLocation().distance(beaconLocation) < minDistance) {
-                            isInBeaconRange = true;
-                        }
+                for (Location beaconLocation : loadedBeaconLocations) {
+                    if (p.getLocation().distance(beaconLocation) < minDistance) {
+                        isInBeaconRange = true;
+                        break;
                     }
+                }
 
-                    if (!isInBeaconRange) {
-                        p.damage(damage);
-                    }
+                if (!isInBeaconRange) {
+                    p.damage(damage);
                 }
             }
         }
@@ -72,7 +69,7 @@ public class BeaconNetherRoofPlugin extends JavaPlugin {
      * */
     private static void findAllLoadedBeacons() {
         loadedBeaconLocations.clear();
-        for (Chunk chunk : Bukkit.getWorld("world_nether").getLoadedChunks()) {
+        for (Chunk chunk : instance.getServer().getWorld("world_nether").getLoadedChunks()) {
             for (BlockState blockState : chunk.getTileEntities()) {
                 if (blockState instanceof Beacon) {
                     Beacon beacon = (Beacon) blockState;
