@@ -1,3 +1,5 @@
 name: BeaconNetherRoof
 main: me.danimania.beaconnetherroof.BeaconNetherRoofPlugin
 version: 1.0
+description: Allows players to go on the nether roof if they are near a beacon.
+author: danimania

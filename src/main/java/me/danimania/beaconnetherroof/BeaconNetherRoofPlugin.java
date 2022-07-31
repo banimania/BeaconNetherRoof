@@ -2,14 +2,20 @@ package me.danimania.beaconnetherroof;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Beacon;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 
-public class BeaconNetherRoofPlugin extends JavaPlugin {
+public class BeaconNetherRoofPlugin extends JavaPlugin implements Listener {
 
     public static BeaconNetherRoofPlugin instance;
 
@@ -17,6 +23,7 @@ public class BeaconNetherRoofPlugin extends JavaPlugin {
 
     public static int minDistance;
     public static double damage;
+    public static int delay;
 
     public BeaconNetherRoofPlugin() {
         instance = this;
@@ -27,16 +34,20 @@ public class BeaconNetherRoofPlugin extends JavaPlugin {
         this.getConfig().options().copyDefaults(true);
         this.saveDefaultConfig();
 
+        instance.getServer().getPluginManager().registerEvents(this, this);
         minDistance = getConfig().getInt("distance");
         damage = getConfig().getInt("damage");
+        delay = getConfig().getInt("delay");
 
+        //Scheduler
         instance.getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
             @Override
             public void run() {
                 findAllLoadedBeacons();
                 dealDamageOnNetherRoof();
             }
-        }, 0, 20);
+        }, 0, 20 * delay);
+
     }
 
     /**
@@ -51,8 +62,13 @@ public class BeaconNetherRoofPlugin extends JavaPlugin {
 
                 for (Location beaconLocation : loadedBeaconLocations) {
                     if (p.getLocation().distance(beaconLocation) < minDistance) {
-                        isInBeaconRange = true;
-                        break;
+                        if (beaconLocation.getBlock().getState() instanceof Beacon) {
+                            Beacon beacon = (Beacon) beaconLocation.getBlock().getState();
+                            if (beacon.getTier() != 0) {
+                                isInBeaconRange = true;
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -72,13 +88,37 @@ public class BeaconNetherRoofPlugin extends JavaPlugin {
         for (Chunk chunk : instance.getServer().getWorld("world_nether").getLoadedChunks()) {
             for (BlockState blockState : chunk.getTileEntities()) {
                 if (blockState instanceof Beacon) {
-                    Beacon beacon = (Beacon) blockState;
-                    if (beacon.getTier() != 0) {
-                        loadedBeaconLocations.add(blockState.getLocation());
-                    }
+                    loadedBeaconLocations.add(blockState.getLocation());
                 }
             }
         }
     }
 
+
+    /**
+     * Add beacons placed to the list, this way
+     * we can increase the delay between beacon
+     * checks.
+     */
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onBlockPlacedEvent(BlockPlaceEvent event) {
+        Location blockPos = event.getBlockPlaced().getLocation();
+        if (event.getBlockPlaced().getState() instanceof Beacon) {
+            if (loadedBeaconLocations.contains(blockPos)) {
+                return;
+            }
+            loadedBeaconLocations.add(event.getBlockPlaced().getLocation());
+        }
+    }
+
+    /**
+     * Check all beacon locations when a player changes
+     * dimension
+     */
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onPlayerChangeDimensionEvent(PlayerChangedWorldEvent event) {
+        if (event.getPlayer().getWorld().getEnvironment() == World.Environment.NETHER) {
+            findAllLoadedBeacons();
+        }
+    }
 }
